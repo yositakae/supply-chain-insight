@@ -1,19 +1,23 @@
 package services
 
-import "supply-chain-insight/backend/internal/models"
+import (
+	"supply-chain-insight/backend/internal/models"
 
-type UserService struct{}
+	"gorm.io/gorm"
+)
 
-func NewUserService() *UserService {
-	return &UserService{}
+type UserService struct {
+	db *gorm.DB
 }
 
-func (s *UserService) GetUsers() []models.User {
-	return []models.User{
-		{
-			ID:    1,
-			Name:  "Demo User",
-			Email: "demo@example.com",
-		},
+func NewUserService(db *gorm.DB) *UserService {
+	return &UserService{db: db}
+}
+
+func (s *UserService) GetUsers() ([]models.User, error) {
+	var users []models.User
+	if err := s.db.Order("id").Find(&users).Error; err != nil {
+		return nil, err
 	}
+	return users, nil
 }
