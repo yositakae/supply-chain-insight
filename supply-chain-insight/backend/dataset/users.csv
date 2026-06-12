@@ -1,0 +1,4 @@
+id,name,email,password,role
+1,Somchai Admin,admin@supplychain.com,admin1234,Admin
+2,Somsri Analyst,analyst@supplychain.com,analyst1234,Analyst
+3,John Doe,john@supplychain.com,password123,Analyst
