@@ -3,9 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-
 	"supply-chain-insight/backend/internal/services"
-
 	"gorm.io/gorm"
 )
 
