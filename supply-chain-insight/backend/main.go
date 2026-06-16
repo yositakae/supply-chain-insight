@@ -31,6 +31,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	handlers.RegisterUserRoutes(mux, db)
+	handlers.RegisterProductRoutes(mux, db)
 
 	port := "8080"
 
