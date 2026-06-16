@@ -25,3 +25,6 @@ func (s *ProductService) GetProducts() ([]models.ProductResponse, error) {
 	}
 	return products, nil
 }
+func (s *ProductService) CreateProduct(product *models.Product) error {
+	return s.db.Create(product).Error
+}
