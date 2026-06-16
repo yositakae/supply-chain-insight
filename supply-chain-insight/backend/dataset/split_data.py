@@ -16,12 +16,21 @@ users_data = {
 }
 pd.DataFrame(users_data).to_csv('users.csv', index=False)
 
+print("กำลังสร้าง category.csv...")
+category = df[['Category Name']].drop_duplicates(subset=['Category Name']).reset_index(drop=True)
+category.columns = ['category']
+category.insert(0, 'id', range(1, 1 + len(category)))
+category.to_csv('category.csv', index=False)
+
+category_map = dict(zip(category['category'], category['id']))
+
 # ---------------------------------------------------------
 # 2. สร้าง products.csv (เหมือนเดิม)
 # ---------------------------------------------------------
 print("กำลังสร้าง products.csv...")
 products = df[['Product Card Id', 'Product Name', 'Category Name', 'Product Price']].drop_duplicates()
-products.columns = ['id', 'product_name', 'category', 'price']
+products.columns = ['id', 'product_name', 'category_id', 'price']
+products['category_id'] = products['category_id'].map(category_map)
 products['stock'] = [random.randint(100, 1000) for _ in range(len(products))]
 products.to_csv('products.csv', index=False)
 
@@ -57,4 +66,4 @@ shipments.columns = ['order_id', 'shipping_mode', 'delivery_days', 'status']
 shipments.insert(0, 'id', range(1, 1 + len(shipments)))
 shipments.to_csv('shipments.csv', index=False)
 
-print("✅ คลีนข้อมูลและแยกตามหลัก Relational Database เสร็จเรียบร้อย!")
+print("คลีนข้อมูลและแยกตามหลัก Relational Database เสร็จเรียบร้อย!")
