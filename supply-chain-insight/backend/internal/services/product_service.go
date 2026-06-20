@@ -1,6 +1,8 @@
 package services
 
 import (
+	"strings"
+
 	"supply-chain-insight/backend/internal/models"
 
 	"gorm.io/gorm"
@@ -47,10 +49,55 @@ func (s *ProductService) GetProductByID(id string) (*models.ProductResponse, err
 	return &product, nil
 }
 func (s *ProductService) CreateProduct(product *models.Product) error {
-	return s.db.Create(product).Error
+	product.ProductName = strings.TrimSpace(product.ProductName)
+
+	// แก้ให้เพิ่มข้อมูลได้: ถ้าไม่ได้ส่ง id มา ให้สร้าง id ถัดไปจากข้อมูลเดิมก่อน insert
+	if product.ID == "" {
+		nextID, err := s.nextProductID()
+		if err != nil {
+			return err
+		}
+		product.ID = nextID
+	}
+
+	return s.db.Table("products").Create(product).Error
+}
+
+func (s *ProductService) nextProductID() (string, error) {
+	var nextID string
+
+	// แก้ให้เพิ่มข้อมูลได้: id ในตารางเป็น varchar จึงแปลงเฉพาะ id ที่เป็นตัวเลขเพื่อหาเลขถัดไป
+	err := s.db.
+		Raw("SELECT (COALESCE(MAX(id::integer), 0) + 1)::text FROM products WHERE id ~ ?", "^[0-9]+$").
+		Scan(&nextID).Error
+
+	return nextID, err
 }
 func (s *ProductService) EditProduct(product *models.Product) error {
-	return s.db.Model(&models.Product{}).
+	result := s.db.Model(&models.Product{}).
 		Where("id = ?", product.ID).
-		Updates(product).Error
+		Updates(product)
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+
+	return nil
+}
+
+func (s *ProductService) DeleteProduct(id string) error {
+	result := s.db.Delete(&models.Product{}, "id = ?", id)
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+
+	return nil
 }

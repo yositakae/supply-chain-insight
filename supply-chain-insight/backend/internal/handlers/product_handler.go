@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 
 	"supply-chain-insight/backend/internal/models"
 	"supply-chain-insight/backend/internal/services"
@@ -33,6 +34,11 @@ func RegisterProductRoutes(mux *http.ServeMux, db *gorm.DB) {
 
 		product.ID = urlID
 		if err := productService.EditProduct(&product); err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				http.Error(w, "product not found", http.StatusNotFound)
+				return
+			}
+
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -61,12 +67,25 @@ func RegisterProductRoutes(mux *http.ServeMux, db *gorm.DB) {
 				return
 			}
 
+			// แก้ให้เพิ่มข้อมูลได้: ตรวจ field ที่จำเป็นก่อนส่งเข้า service เพื่อให้รู้สาเหตุชัดเจน
+			if strings.TrimSpace(product.ProductName) == "" {
+				http.Error(w, "product_name is required", http.StatusBadRequest)
+				return
+			}
+			if product.CategoryID <= 0 {
+				http.Error(w, "category_id is required", http.StatusBadRequest)
+				return
+			}
+
 			if err := productService.CreateProduct(&product); err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
 
+			// แก้ให้เพิ่มข้อมูลได้: คืนข้อมูลที่สร้างกลับไป รวมถึง id ที่ service สร้างให้อัตโนมัติ
+			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(product)
 
 		default:
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -93,4 +112,19 @@ func RegisterProductRoutes(mux *http.ServeMux, db *gorm.DB) {
 	// ส่วน route สำหรับแก้ไขสินค้า: Postman ยิง POST หรือ PATCH มาที่ /products/{id} ได้.
 	mux.HandleFunc("POST /products/{id}", updateProduct)
 	mux.HandleFunc("PATCH /products/{id}", updateProduct)
+	mux.HandleFunc("DELETE /products/{id}", func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("id")
+
+		if err := productService.DeleteProduct(id); err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				http.Error(w, "product not found", http.StatusNotFound)
+				return
+			}
+
+			http.Error(w, "failed to delete product", http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+	})
 }
